@@ -1,0 +1,23 @@
+{% extends "layout.twig" %}
+{% block title %} Autores – uoMusic {% endblock %}
+{% block main_container %}
+
+    <h2>Autores</h2>
+    <br>
+    <div class="row">
+        <!-- Inicio del Bloque autores -->
+        {% for author in authors %}
+            <div class="col-xs-6 col-sm-6 col-md-4 col-lg-3">
+                <div style="width:200px">
+                    <a href="/author/id">
+                        <img src="/images/user.png" alt="logo"/>
+                        <div>{{ author.nombre }} </div>
+                        <div class="small">{{ author.grupo }} </div>
+                        <div class="small">{{ author.rol }}</div>
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+        <!-- Fin del Bloque autor -->
+    </div>
+{% endblock %}
