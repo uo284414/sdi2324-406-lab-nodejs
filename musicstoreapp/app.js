@@ -16,8 +16,10 @@ let usersRouter = require('./routes/users');
 const { MongoClient } = require("mongodb");
 const connectionStrings = "mongodb+srv://admin:sdiNode@sdi-cluster.ckb2zzr.mongodb.net/?retryWrites=true&w=majority";
 const dbClient = new MongoClient(connectionStrings);
+let songsRepository = require("./repositories/songsRepository.js");
+songsRepository.init(app, dbClient);
 //app.set('connectionStrings', url);
-require("./routes/songs.js")(app, dbClient);
+require("./routes/songs.js")(app, songsRepository);
 require("./routes/authors")(app);
 
 // view engine setup
