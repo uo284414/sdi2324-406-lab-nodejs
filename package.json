@@ -3,7 +3,8 @@
   "Description": "Tienda de música",
   "versión": "1.0.0",
   "dependencies": {
-    "body-parser": "^1.20.2"
+    "body-parser": "^1.20.2",
+    "mongodb": "^6.5.0"
   },
   "devDependencies": {
     "@types/jest": "^29.2.5",

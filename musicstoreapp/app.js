@@ -12,7 +12,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 let indexRouter = require('./routes/index');
 let usersRouter = require('./routes/users');
-require("./routes/songs.js")(app);
+
+const { MongoClient } = require("mongodb");
+const connectionStrings = "mongodb+srv://admin:sdiNode@sdi-cluster.ckb2zzr.mongodb.net/?retryWrites=true&w=majority";
+const dbClient = new MongoClient(connectionStrings);
+//app.set('connectionStrings', url);
+require("./routes/songs.js")(app, dbClient);
 require("./routes/authors")(app);
 
 // view engine setup
