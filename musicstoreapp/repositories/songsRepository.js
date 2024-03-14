@@ -7,6 +7,7 @@ module.exports = {
         this.dbClient = dbClient;
         this.app = app;
     },
+
     insertSong: function (song, callbackFunction) {
         this.dbClient.connect()
             .then(() => {
@@ -18,5 +19,29 @@ module.exports = {
                     .catch(err => callbackFunction({error: err.message}));
             })
             .catch(err => callbackFunction({error: err.message}))
-    }
+    },
+
+    getSongs: async function (filter, options) {
+        try {
+            await this.dbClient.connect();
+            const database = this.dbClient.db(this.database);
+            const songsCollection = database.collection(this.collectionName);
+            const songs = await songsCollection.find(filter, options).toArray();
+            return songs;
+        } catch (error) {
+            throw (error);
+        }
+    },
+
+    findSong: async function (filter, options) {
+        try {
+            await this.dbClient.connect();
+            const database = this.dbClient.db(this.database);
+            const songsCollection = database.collection(this.collectionName);
+            const song = await songsCollection.findOne(filter, options);
+            return song;
+        } catch (error) {
+            throw (error);
+        }
+    },
 }
