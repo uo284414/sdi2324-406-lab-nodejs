@@ -39,8 +39,15 @@ let indexRouter = require('./routes/index');
 const {MongoClient} = require("mongodb");
 const connectionStrings = "mongodb+srv://admin:sdiNode@sdi-cluster.ckb2zzr.mongodb.net/?retryWrites=true&w=majority";
 const dbClient = new MongoClient(connectionStrings);
+
+let favouritesRepository = require("./repositories/favouritesRepository.js");
 let songsRepository = require("./repositories/songsRepository.js");
+
+favouritesRepository.init(app, dbClient);
 songsRepository.init(app, dbClient);
+
+require("./routes/favourites.js")(app, songsRepository, favouritesRepository);
+
 //app.set('connectionStrings', url);
 require("./routes/songs.js")(app, songsRepository);
 require("./routes/authors")(app);
@@ -71,6 +78,7 @@ app.use(function (err, req, res, next) {
     // set locals, only providing error in development
     res.locals.message = err.message;
     res.locals.error = req.app.get('env') === 'development' ? err : {};
+    console.log("Error: " + err.message);
 
     // render the error page
     res.status(err.status || 500);

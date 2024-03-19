@@ -70,7 +70,12 @@ module.exports = function (app, songsRepository) {
     })
 
     app.post('/songs/edit/:id', function (req, res) {
-        let song = {title: req.body.title, kind: req.body.kind, price: req.body.price, author: req.session.user}
+        let song = {
+            title: req.body.title,
+            kind: req.body.kind,
+            price: req.body.price,
+            author: req.session.user
+        }
         let songId = req.params.id;
         let filter = {_id: new ObjectId(songId)};
         //que no se cree un documento nuevo, si no existe
