@@ -16,5 +16,17 @@ module.exports = {
         } catch (error) {
             throw (error);
         }
-    }
+    },
+
+    insertUser: async function (user) {
+        try {
+            await this.dbClient.connect();
+            const database = this.dbClient.db(this.database);
+            const usersCollection = database.collection(this.collectionName);
+            await usersCollection.insertOne(user);
+            return;
+        } catch (error) {
+            throw (error);
+        }
+    },
 };

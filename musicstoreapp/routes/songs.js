@@ -107,19 +107,50 @@ module.exports = function (app, songsRepository) {
 
     app.post('/songs/buy/:id', function (req, res) {
         let songId = new ObjectId(req.params.id);
-        let shop = {
-            user: req.session.user,
-            song_id: songId
-        }
-        songsRepository.buySong(shop).then(result => {
-            if (result.insertedId === null || typeof (result.insertedId) === undefined) {
-                res.send("Se ha producido un error al comprar la canción")
-            } else {
-                res.redirect("/purchases");
+
+        let userEmail=req.user; // Este parametro es el email
+        let bought = false;
+        let author = false;
+
+        songsRepository.getPurchases(
+            {user: userEmail},
+            {projection: {_id: 0, song_id:1}})
+            .then(purchasedIds => {
+                for (const id of purchasedIds) {
+                    if (id===songId){
+                        bought=true;
+                        break;
+                    }
+                }
+            })
+            .catch(() => bought=false);
+
+        try{
+            if (song.author.email === userEmail){
+                author = true;
             }
-        }).catch(error => {
-            res.send("Se ha producido un error al comprar la canción " + error)
-        })
+        } catch (e) {
+            // Si no existe el autor de la cancion
+            author = false;
+        }
+
+        if (!author && !bought){
+            let shop = {
+                user: req.session.user,
+                song_id: songId
+            }
+            songsRepository.buySong(shop).then(result => {
+                if (result.insertedId === null || typeof (result.insertedId) === undefined) {
+                    res.send("Se ha producido un error al comprar la canción")
+                } else {
+                    res.redirect("/purchases");
+                }
+            }).catch(error => {
+                res.send("Se ha producido un error al comprar la canción " + error)
+            })
+        } else {
+            res.send("No puede comprar la canción si es suya")
+        }
     });
 
     app.get('/purchases', function (req, res) {
@@ -222,10 +253,40 @@ module.exports = function (app, songsRepository) {
     })
 
     app.get('/songs/:id', function (req, res) {
-        let filter = {_id: new ObjectId(req.params.id)};
+        let songId=req.params.id;
+
+        let userEmail=req.user; // Este parametro es el email
+        let bought = false;
+        let author = false;
+
+        songsRepository.getPurchases(
+            {user: userEmail},
+            {projection: {_id: 0, song_id:1}})
+            .then(purchasedIds => {
+                for (const id of purchasedIds) {
+                    if (id===songId){
+                        bought=true;
+                        break;
+                    }
+                }
+            })
+            .catch(() => bought=false);
+
+        let filter = {_id: new ObjectId(songId)};
         let options = {};
         songsRepository.findSong(filter, options).then(song => {
-            res.render("songs/song.twig", {song: song});
+            try{
+                if (song.author.email !== undefined && song.author.email === userEmail){
+                    console.log(song.author.email);
+                    author = true;
+                }
+            } catch (e) {
+                // Si no existe el autor de la cancion
+                author = false;
+            }
+            console.log(author);
+            console.log(bought);
+            res.render("songs/song.twig", {song: song, author: author, bought: bought});
         }).catch(error => {
             res.send("Se ha producido un error al buscar la canción " + error)
         });
