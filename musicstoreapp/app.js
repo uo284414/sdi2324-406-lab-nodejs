@@ -56,6 +56,8 @@ require("./routes/favourites.js")(app, songsRepository, favouritesRepository);
 
 //app.set('connectionStrings', url);
 require("./routes/songs.js")(app, songsRepository);
+require("./routes/api/songsAPIv1.0.js")(app, songsRepository);
+
 require("./routes/authors")(app);
 
 const usersRepository = require("./repositories/usersRepository.js");
