@@ -5,6 +5,12 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
 let app = express();
+let jwt = require('jsonwebtoken');
+app.set('jwt', jwt);
+
+let bodyParser = require('body-parser');
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
 
 let expressSession = require('express-session');
 app.use(expressSession({
@@ -24,7 +30,10 @@ app.use("/songs/buy",userSessionRouter);
 app.use("/purchases",userSessionRouter);
 app.use("/publications", userSessionRouter);
 app.use("/audios/", userAudiosRouter);
-app.use("/shop/", userSessionRouter)
+app.use("/shop/", userSessionRouter);
+
+const userTokenRouter = require('./routes/userTokenRouter');
+app.use("/api/v1.0/songs/", userTokenRouter);
 
 let crypto = require('crypto');
 let fileUpload = require('express-fileupload');
@@ -35,10 +44,6 @@ app.use(fileUpload({
 app.set('uploadPath', __dirname)
 app.set('clave', 'abcdefg');
 app.set('crypto', crypto);
-
-let bodyParser = require('body-parser');
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
 
 let indexRouter = require('./routes/index');
 
@@ -52,16 +57,17 @@ let songsRepository = require("./repositories/songsRepository.js");
 favouritesRepository.init(app, dbClient);
 songsRepository.init(app, dbClient);
 
+const usersRepository = require("./repositories/usersRepository.js");
+usersRepository.init(app, dbClient);
+
 require("./routes/favourites.js")(app, songsRepository, favouritesRepository);
 
 //app.set('connectionStrings', url);
 require("./routes/songs.js")(app, songsRepository);
-require("./routes/api/songsAPIv1.0.js")(app, songsRepository);
+require("./routes/api/songsAPIv1.0.js")(app, songsRepository, usersRepository);
 
 require("./routes/authors")(app);
 
-const usersRepository = require("./repositories/usersRepository.js");
-usersRepository.init(app, dbClient);
 require("./routes/users.js")(app, usersRepository);
 
 // view engine setup
