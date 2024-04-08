@@ -108,25 +108,25 @@ module.exports = function (app, songsRepository) {
     app.post('/songs/buy/:id', function (req, res) {
         let songId = new ObjectId(req.params.id);
 
-        let userEmail=req.user; // Este parametro es el email
+        let userEmail = req.user; // Este parametro es el email
         let bought = false;
         let author = false;
 
         songsRepository.getPurchases(
             {user: userEmail},
-            {projection: {_id: 0, song_id:1}})
+            {projection: {_id: 0, song_id: 1}})
             .then(purchasedIds => {
                 for (const id of purchasedIds) {
-                    if (id===songId){
-                        bought=true;
+                    if (id === songId) {
+                        bought = true;
                         break;
                     }
                 }
             })
-            .catch(() => bought=false);
+            .catch(() => bought = false);
 
-        try{
-            if (song.author.email === userEmail){
+        try {
+            if (song.author.email === userEmail) {
                 author = true;
             }
         } catch (e) {
@@ -134,7 +134,7 @@ module.exports = function (app, songsRepository) {
             author = false;
         }
 
-        if (!author && !bought){
+        if (!author && !bought) {
             let shop = {
                 user: req.session.user,
                 song_id: songId
@@ -252,50 +252,68 @@ module.exports = function (app, songsRepository) {
         });
     })
 
-    app.get('/songs/:id', function (req, res) {
-        let songId=req.params.id;
-
-        let userEmail=req.user; // Este parametro es el email
-        let bought = false;
-        let author = false;
-
-        songsRepository.getPurchases(
-            {user: userEmail},
-            {projection: {_id: 0, song_id:1}})
-            .then(purchasedIds => {
-                for (const id of purchasedIds) {
-                    if (id===songId){
-                        bought=true;
-                        break;
-                    }
-                }
-            })
-            .catch(() => bought=false);
-
+    function userCanBuySong(user, songId, callbackFunction) {
+        //Compruebo si es suya la canción
         let filter = {_id: new ObjectId(songId)};
         let options = {};
         songsRepository.findSong(filter, options).then(song => {
-            try{
-                if (song.author.email !== undefined && song.author.email === userEmail){
-                    console.log(song.author.email);
-                    author = true;
+            try {
+                if (song.author.email !== undefined && song.author.email === user) {
+                    callbackFunction(true);
+                } else {
+                    //Compruebo si la ha comprado
+                    songsRepository.getPurchases(
+                        {user: user},
+                        {projection: {_id: 0, song_id: 1}})
+                        .then(purchasedIds => {
+                            for (const id of purchasedIds) {
+                                if (id === songId) {
+                                    callbackFunction(true);
+                                    return;
+                                }
+                            }
+                            callbackFunction(false);
+                        })
+                        .catch(() => {
+                            callbackFunction({error: err.message});
+                        });
                 }
             } catch (e) {
                 // Si no existe el autor de la cancion
-                author = false;
+                throw new Error("Error al buscar la cancion");
             }
-            console.log(author);
-            console.log(bought);
-            res.render("songs/song.twig", {song: song, author: author, bought: bought});
+        });
+    }
+
+    app.get('/songs/:id', function (req, res) {
+        let songId = new ObjectId(req.params.id);
+        let user = req.session.user;
+        let filter = {_id: songId};
+        let options = {};
+        songsRepository.findSong(filter, options).then(song => {
+            userCanBuySong(user, songId, function (canBuySong) {
+                let settings = {
+                    url: "https://api.currencyapi.com/v3/latest" +
+                        "?apikey=cur_live_3E0WC6wA1qDwspLSXSEt6YtS9laR0o2AX2w7IUCv" +
+                        "&base_currency=EUR&currencies=USD",
+                    method: "get",
+                }
+                let rest = app.get("rest");
+                rest(settings, function (error, response, body) {
+                    console.log("cod: " + response.statusCode + " Cuerpo :" + body);
+                    let responseObject = JSON.parse(body);
+                    let rateUSD = responseObject.data.USD.value;
+                    // nuevo campo "usd" redondeado a dos decimales
+                    let songValue = song.price / rateUSD
+                    song.usd = Math.round(songValue * 100) / 100;
+                    res.render("songs/song.twig", {song: song, canBuySong: canBuySong});
+                })
+            })
         }).catch(error => {
             res.send("Se ha producido un error al buscar la canción " + error)
         });
-    })
-
-    app.get('/songs/:id', function (req, res) {
-        let response = 'id: ' + req.params.id;
-        res.send(response);
     });
+
 
     app.get('/songs/:kind/:id', function (req, res) {
         let response = 'id: ' + req.params.id + '<br>'

@@ -8,6 +8,10 @@ let app = express();
 let jwt = require('jsonwebtoken');
 app.set('jwt', jwt);
 
+let rest = require('request');
+app.set('rest', rest);
+
+
 let bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
