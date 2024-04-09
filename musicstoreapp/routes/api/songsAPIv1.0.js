@@ -14,6 +14,12 @@ module.exports = function (app, songsRepository, usersRepository) {
 
     app.get("/api/v1.0/songs/:id", function (req, res) {
         try {
+            if (req.params.id === undefined){
+                res.status(400);
+                res.json({error: "No se ha realizar la petición. Debes escribir un id válido"});
+                return;
+            }
+
             let songId = new ObjectId(req.params.id)
             let filter = {_id: songId};
             let options = {};
@@ -37,6 +43,11 @@ module.exports = function (app, songsRepository, usersRepository) {
 
     app.delete('/api/v1.0/songs/:id', function (req, res) {
         try {
+            if (!isAuthorOf(res.user, req.params.id)){
+                res.status(400);
+                res.json({error : "El usuario no es el propietario de una cancion con ese ID."})
+            }
+
             let songId = new ObjectId(req.params.id)
             let filter = {_id: songId}
             songsRepository.deleteSong(filter, {}).then(result => {
@@ -59,13 +70,23 @@ module.exports = function (app, songsRepository, usersRepository) {
 
     app.post('/api/v1.0/songs', function (req, res) {
         try {
+
             let song = {
                 title: req.body.title,
                 kind: req.body.kind,
                 price: req.body.price,
-                author: req.session.user
+                author: res.user
             }
+
             // Validar aquí: título, género, precio y autor.
+            if (req.body.price.type === undefined || req.body.price.type < 0 ||
+                    req.body.title === undefined || req.body.title.length < 4 ||
+                    req.body.kind === undefined || req.body.kind.length === 0 ||
+                    res.user === undefined || res.user === 0 ){
+                res.status(400);
+                res.json({error: "No se ha podido crear la canción. Error al validar los campos."});
+                return;
+            }
             songsRepository.insertSong(song, function (songId) {
                 if (songId === null) {
                     res.status(409);
@@ -86,6 +107,17 @@ module.exports = function (app, songsRepository, usersRepository) {
 
     app.put('/api/v1.0/songs/:id', function (req, res) {
         try {
+            if (req.params.id === undefined){
+                res.status(400);
+                res.json({error: "No se ha realizar la petición. Debes escribir un id válido"});
+                return;
+            }
+
+            if (!isAuthorOf(res.user, req.params.id)){
+                res.status(400);
+                res.json({error : "El usuario no es el propietario de una cancion con ese ID."})
+            }
+
             let songId = new ObjectId(req.params.id);
             let filter = {_id: songId};
             //Si la _id NO no existe, no crea un nuevo documento.
@@ -169,5 +201,27 @@ module.exports = function (app, songsRepository, usersRepository) {
             })
         }
     })
+
+    function isAuthorOf(userEmail, songId) {
+        console.log(userEmail);
+        console.log(songId);
+        try {
+            let filterUser = {email: userEmail};
+            usersRepository.findUser(filterUser, {})
+                .then( user => {
+                    console.log(user);
+                    let filterSong = {_id: songId};
+                    songsRepository.findSong(filterSong, {})
+                        .then(song =>{
+                            console.log(song);
+                            if (song === null || song.author === undefined || song.author === null)
+                                return false;
+                            return song.author._id === user._id;
+                        });
+                });
+        } catch (e) {
+            throw new Error("Se ha producido un error al comprobar si es autor.");
+        }
+    }
 
 }
